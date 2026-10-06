@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 
-/// Component: Header trên cùng của ứng dụng theo phong cách Liquid Glass
+/// ============================================================================
+/// WIDGET: AppHeader (Header thương hiệu & ngày tháng)
+/// ============================================================================
+/// - Hiển thị logo kiểm hoàn thành, tên thương hiệu "Todo Planner", ngày hiện tại.
+/// - Cung cấp nút tiện ích "Today" để người dùng quay về ngày hiện tại chỉ bằng 1 chạm.
+/// ============================================================================
 class AppHeader extends StatelessWidget {
   final DateTime selectedDate;
   final VoidCallback onBackToToday;

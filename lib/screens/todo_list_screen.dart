@@ -8,7 +8,17 @@ import '../widgets/task_timeline_tile.dart';
 import '../widgets/bottom_dock_bar.dart';
 import '../widgets/task_editor_sheet.dart';
 
-/// Screen chính: Todo Planner theo giao diện thiết kế hiện đại
+/// ============================================================================
+/// SCREEN CHÍNH: Todo Planner (PRM393 Assignment 1)
+/// ============================================================================
+/// 
+/// DÀNH CHO LẬP TRÌNH VIÊN TỪ REACT / REACT NATIVE:
+/// 1. Screen này đóng vai trò là "Smart Container Component" (Nguồn dữ liệu duy nhất).
+/// 2. Toàn bộ State (tasks, ngày chọn, bộ lọc, sort) được lưu giữ tập trung tại đây.
+/// 3. Dữ liệu được truyền xuống các Widget con qua Constructor (tương đương Props).
+/// 4. Các Widget con gửi sự kiện lên Screen qua Callbacks (tương đương onPress) 
+///    và Screen gọi `setState()` để kích hoạt vẽ lại (Re-render) giao diện.
+/// ============================================================================
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
 
@@ -17,13 +27,12 @@ class TodoListScreen extends StatefulWidget {
 }
 
 class _TodoListScreenState extends State<TodoListScreen> {
-  late DateTime _selectedDate;
-  int _weekOffset = 0;
-  TaskFilter _currentFilter = TaskFilter.all;
-  bool _reverseSort = false;
-
-  // Danh sách công việc (Local State thuần qua StatefulWidget & setState)
-  late List<TaskItem> _tasks;
+  // --- 1. KHỞI TẠO STATE (Tương đương các useState() trong React) ---
+  late DateTime _selectedDate;             // const [selectedDate, setSelectedDate] = useState(...)
+  int _weekOffset = 0;                     // const [weekOffset, setWeekOffset] = useState(0)
+  TaskFilter _currentFilter = TaskFilter.all; // const [filter, setFilter] = useState(TaskFilter.all)
+  bool _reverseSort = false;               // const [reverse, setReverse] = useState(false)
+  late List<TaskItem> _tasks;              // const [tasks, setTasks] = useState([...])
 
   @override
   void initState() {
@@ -72,12 +81,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  /// Danh sách task của ngày đang được chọn
+  // --- 2. DỮ LIỆU TÍNH TOÁN (GETTERS - Tương đương useMemo() trong React) ---
+
+  /// Lọc danh sách công việc của ngày đang được chọn (_selectedDate)
   List<TaskItem> get _dayTasks {
     return _tasks.where((t) => _isSameDay(t.startDateTime, _selectedDate)).toList();
   }
 
-  /// Danh sách task sau khi áp dụng bộ lọc và sắp xếp
+  /// Lọc tiếp theo bộ lọc (All, Active, Done) và sắp xếp theo thời gian
   List<TaskItem> get _visibleTasks {
     final dayList = _dayTasks;
     List<TaskItem> filtered;
@@ -98,7 +109,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     return filtered;
   }
 
-  /// Toggle trạng thái hoàn thành của task
+  // --- 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Tương đương Event Handlers / setState trong React) ---
+
+  /// Đổi trạng thái hoàn thành (Requirement 4 trong đề bài)
   void _toggleComplete(String taskId) {
     setState(() {
       final task = _tasks.firstWhere((t) => t.id == taskId);
@@ -106,22 +119,23 @@ class _TodoListScreenState extends State<TodoListScreen> {
     });
   }
 
-  /// Xóa task khỏi danh sách
+  /// Xóa task khỏi danh sách (Requirement 5 trong đề bài)
   void _deleteTask(String taskId) {
     setState(() {
       _tasks.removeWhere((t) => t.id == taskId);
     });
   }
 
-  /// Lưu task mới hoặc cập nhật task đã có
+  /// Thêm mới hoặc Cập nhật task (Requirement 2 & Bonus Edit trong đề bài)
   void _saveTask(TaskItem task) {
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == task.id);
       if (index >= 0) {
-        _tasks[index] = task;
+        _tasks[index] = task; // Chỉnh sửa task có sẵn
       } else {
-        _tasks.add(task);
+        _tasks.add(task); // Thêm task mới vào danh sách
       }
+      // Tự động chuyển lịch sang ngày của task vừa tạo/sửa
       _selectedDate = DateTime(
         task.startDateTime.year,
         task.startDateTime.month,
@@ -155,6 +169,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     });
   }
 
+  // --- 4. HÀM DỰNG GIAO DIỆN (Tương đương return (<View>...) trong React Native) ---
   @override
   Widget build(BuildContext context) {
     final dayTasks = _dayTasks;

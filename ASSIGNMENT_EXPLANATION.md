@@ -17,22 +17,19 @@ Trong dự án hiện tại có **2 nhóm file**:
 
 ### 2. Chi tiết từng file
 
-| Tên File | Phân loại | Giải thích chức năng & Đối chiếu đề bài |
+| Tên File | Phân loại | Giải thích chức năng & Đáp ứng đề bài PRM393 |
 | :--- | :--- | :--- |
-| **`lib/main.dart`** | 🟢 **Theo đề bài** | Điểm khởi chạy của ứng dụng Flutter. Chứa `MaterialApp`, cấu hình Theme và gọi màn hình đầu tiên `TodoListScreen()`. Đề bài yêu cầu dùng `MaterialApp`. |
-| **`lib/models/task_item.dart`** | 🟢 **Theo đề bài** | Class Model định nghĩa cấu trúc dữ liệu của 1 công việc: `id`, `title`, `isCompleted`. Bổ sung `startDateTime`, `endDateTime` và enum `TaskFilter` (`all`, `active`, `done`). |
-| **`lib/screens/todo_list_screen.dart`** | 🟢 **Theo đề bài** | **Màn hình chính**. Là "Bộ não" quản lý toàn bộ dữ liệu công việc bằng `StatefulWidget` & `setState()`. Thực hiện các chức năng cốt lõi: Xem, Thêm, Sửa, Xóa, Đổi trạng thái `isCompleted`. Đề bài cấm dùng Provider/Bloc/Firebase, bắt buộc dùng State thuần tại đây. |
-| **`lib/widgets/task_input_form.dart`** | 🟢 **Theo đề bài** | Widget Form cơ bản theo đúng đặc tả: chứa `TextFormField`, nút bấm `ElevatedButton("Add Task")`, kiểm tra rỗng hiển thị thông báo validation (*"Please enter a task"*). |
-| **`lib/widgets/task_item_tile.dart`** | 🟢 **Theo đề bài** | Widget hiển thị 1 dòng công việc theo chuẩn cơ bản của đề: dùng `ListTile`, có icon check hoàn thành (gạch ngang chữ), icon xóa task (`IconButton(Icons.delete)`). |
-| **`lib/widgets/task_stats_bar.dart`** | 🟢 **Theo đề bài (Bonus)** | Thanh đếm số lượng công việc: Tổng cộng (Total), Đã làm (Done), Còn lại (Left). Đáp ứng mục **Optional Challenges** trong đề bài (*"Display total number of tasks / completed tasks"*). |
-| **`lib/widgets/task_filter_bar.dart`** | 🟢 **Theo đề bài (Bonus)** | Thanh lọc công việc 3 chế độ (`All`, `Active`, `Done`) và nút đổi chiều sắp xếp (Sort). Đáp ứng mục **Optional Challenges** trong đề bài (*"Add task filters: All, Completed, Incomplete"* & *"Sort tasks"*). |
+| **`lib/main.dart`** | 🟢 **Core (Đề bài)** | Điểm khởi chạy của ứng dụng Flutter. Chứa `MaterialApp`, cấu hình Theme và gọi màn hình đầu tiên `TodoListScreen()`. Đề bài yêu cầu dùng `MaterialApp`. |
+| **`lib/models/task_item.dart`** | 🟢 **Core (Đề bài)** | Class Model định nghĩa cấu trúc dữ liệu của 1 công việc: `id`, `title`, `isCompleted`. Bổ sung `startDateTime`, `endDateTime` và enum `TaskFilter` (`all`, `active`, `done`). |
+| **`lib/screens/todo_list_screen.dart`** | 🟢 **Core (Đề bài)** | **Màn hình chính**. Là "Bộ não" quản lý toàn bộ dữ liệu công việc bằng `StatefulWidget` & `setState()`. Thực hiện các chức năng cốt lõi: Xem, Thêm, Sửa, Xóa, Đổi trạng thái `isCompleted`. Dùng `ListView` theo đúng đề. Đề bài cấm dùng Provider/Bloc/Firebase, bắt buộc dùng State thuần tại đây. |
+| **`lib/widgets/task_editor_sheet.dart`** | 🟢 **Core (Đề bài) + UI** | **Thêm & Sửa Task**: Đáp ứng **Requirement 2** (Form, `TextFormField`, nút `ElevatedButton("Add task")`, validation báo lỗi khi rỗng). Kiêm luôn **Bonus Challenge** (Sửa Task - Edit). Mở trượt lên từ nút "+ Add task". |
+| **`lib/widgets/task_timeline_tile.dart`** | 🟢 **Core (Đề bài) + UI** | **Hiển thị Task Item**: Đáp ứng **Requirement 3, 4, 5** (Tiêu đề `Text`, nút Complete tích đổi màu và gạch ngang chữ, nút Xóa tức thời khỏi danh sách, nút Sửa). Thiết kế dạng Timeline thời gian cao cấp. |
+| **`lib/widgets/bottom_dock_bar.dart`** | 🟢 **Bonus (Đề bài) + UI** | **Thanh Dock nổi**: Đáp ứng **Bonus Challenge** (Hiển thị thống kê `Total`, `Done`, `Left` theo thời gian thực) và nút bấm tiện ích `+ Add task`. |
+| **`lib/widgets/task_filter_bar.dart`** | 🟢 **Bonus (Đề bài) + UI** | **Bộ lọc & Sắp xếp**: Đáp ứng **Bonus Challenge** (Bộ lọc 3 chế độ `All`, `Active`, `Done` và nút đảo chiều sắp xếp thời gian `Sort`). |
+| **`lib/widgets/week_calendar_strip.dart`** | 🟣 **Làm thêm (UI)** | **Thanh trượt lịch tuần**: Hiển thị 7 ngày trong tuần, tự động đếm số lượng task mỗi ngày, bấm đổi ngày và chuyển tuần (`weekOffset`). |
+| **`lib/widgets/app_header.dart`** | 🟣 **Làm thêm (UI)** | **Header trên cùng**: Biểu tượng kiểm hoàn thành, tên ứng dụng *"Todo Planner"*, ngày hiện tại và nút quay về hôm nay (*"Today"*). |
+| **`lib/widgets/liquid_glass.dart`** | 🟣 **Làm thêm (UI)** | **Khối kính quang học**: Sử dụng `BackdropFilter` và `ImageFilter.blur` làm mờ nhòe khúc xạ các phần tử phía dưới, kèm viền trắng sáng `Specular Highlight Border`. |
 | **`lib/theme/app_colors.dart`** | 🟣 **Làm thêm (UI)** | Khai báo bảng mã màu thiết kế Liquid Glass (`#EAF0F8`, `#28364A`, `#6688BB`, v.v.) và các màu bóng đổ đổ bóng ambient/accent. |
-| **`lib/widgets/liquid_glass.dart`** | 🟣 **Làm thêm (UI)** | Khối kính quang học sử dụng `BackdropFilter` và `ImageFilter.blur` làm mờ nhòe khúc xạ các phần tử phía dưới, kèm viền trắng sáng `Specular Highlight Border`. |
-| **`lib/widgets/app_header.dart`** | 🟣 **Làm thêm (UI)** | Header phía trên với biểu tượng kiểm hoàn thành, tên thương hiệu *"Todo Planner"*, thứ ngày tháng hiện tại và nút quay về hôm nay (*"Back to today"*). |
-| **`lib/widgets/week_calendar_strip.dart`** | 🟣 **Làm thêm (UI)** | Thanh trượt lịch tuần tương tác 7 ngày: hiển thị số công việc theo từng ngày, cho phép bấm chọn ngày và chuyển tuần qua lại (`weekOffset`). |
-| **`lib/widgets/task_timeline_tile.dart`** | 🟣 **Làm thêm (UI)** | Phiên bản nâng cấp giao diện của `task_item_tile.dart`: biến các task thành trục Timeline thời gian với vạch kẻ nối dọc, giờ bắt đầu - kết thúc, badge kính thời lượng (`durationString`) và nút Sửa/Xóa. |
-| **`lib/widgets/bottom_dock_bar.dart`** | 🟣 **Làm thêm (UI)** | Thanh Dock kính lỏng nổi cố định ở đáy màn hình: tích hợp bộ đếm thống kê và nút "+ Add task". |
-| **`lib/widgets/task_editor_sheet.dart`** | 🟣 **Làm thêm (UI)** | Modal BottomSheet kính lỏng mở lên từ đáy: thay thế cho form tĩnh, cho phép nhập tên, chọn ngày/giờ bắt đầu và kết thúc với validation chặt chẽ. |
 | **`test/widget_test.dart`** | 🟢 **Hỗ trợ chấm điểm** | Bộ kiểm thử tự động (Unit/Widget Tests): tự động giả lập bấm nút Thêm, kiểm tra Validation khi rỗng, Đổi trạng thái, Lọc, Xóa và kiểm tra giao diện mobile không bị tràn màn hình (Overflow). |
 
 ---

@@ -3,7 +3,13 @@ import '../models/task_item.dart';
 import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 
-/// Component: Dải lịch tuần tương tác (7 ngày) theo phong cách Liquid Glass
+/// ============================================================================
+/// WIDGET: WeekCalendarStrip (Thanh trượt lịch tuần 7 ngày)
+/// ============================================================================
+/// - Cung cấp thanh chọn 7 ngày trong tuần, tự động tính số lượng task cho từng ngày.
+/// - Cho phép bấm chuyển tuần trước / tuần sau qua nút mũi tên điều hướng.
+/// - Đồng bộ trực tiếp với Screen qua callback onDateSelected và onWeekOffsetChanged.
+/// ============================================================================
 class WeekCalendarStrip extends StatelessWidget {
   final DateTime selectedDate;
   final int weekOffset;

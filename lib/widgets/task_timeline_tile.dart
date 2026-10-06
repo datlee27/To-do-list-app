@@ -3,7 +3,14 @@ import '../models/task_item.dart';
 import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 
-/// Component: Đại diện cho một thẻ Task trên trục Timeline với hiệu ứng Liquid Glass
+/// ============================================================================
+/// WIDGET: TaskTimelineTile (Thẻ Task trên trục Timeline)
+/// ============================================================================
+/// - Đáp ứng Requirement 3 của đề bài: Cung cấp tiêu đề Text, nút Complete, nút Delete.
+/// - Đáp ứng Requirement 4 của đề bài: Đổi màu chữ và gạch ngang (strikethrough) khi hoàn thành.
+/// - Đáp ứng Requirement 5 của đề bài: Gọi callback onDelete để xóa ngay lập tức.
+/// - Nâng cấp: Tích hợp trục thời gian, giờ bắt đầu/kết thúc, badge kính thời lượng và nút Edit.
+/// ============================================================================
 class TaskTimelineTile extends StatelessWidget {
   final TaskItem task;
   final bool isLast;

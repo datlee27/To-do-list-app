@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/task_item.dart';
 import '../theme/app_colors.dart';
 
-/// Modal BottomSheet dùng để Thêm mới hoặc Chỉnh sửa Task với hiệu ứng Liquid Glass
+/// ============================================================================
+/// WIDGET: TaskEditorSheet (Thêm mới & Chỉnh sửa Task)
+/// ============================================================================
+/// - Đáp ứng Requirement 2 của đề bài: Cung cấp Form, TextFormField,
+///   ElevatedButton ("Add task"), kiểm tra Validation khi tiêu đề bị rỗng.
+/// - Đồng thời kiêm nhiệm tính năng điểm thưởng (Bonus): Sửa Task (Edit Task).
+/// - Được mở dưới dạng Modal BottomSheet từ nút "+ Add task" ở thanh Dock hoặc nút Edit.
+/// ============================================================================
 class TaskEditorSheet extends StatefulWidget {
   final TaskItem? editingTask;
   final DateTime initialDate;

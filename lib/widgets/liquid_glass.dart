@@ -1,8 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// Component: Khối kính lỏng quang học (Liquid Glass) theo phong cách iOS / uilayouts
-/// Sử dụng BackdropFilter và ImageFilter.blur để làm mờ khúc xạ thời gian thực các phần tử trôi bên dưới
+/// ============================================================================
+/// WIDGET: LiquidGlass (Khối kính lỏng quang học)
+/// ============================================================================
+/// - Sử dụng BackdropFilter & ImageFilter.blur để làm mờ khúc xạ thời gian thực
+///   các thành phần giao diện trôi bên dưới khi người dùng cuộn danh sách.
+/// - Kết hợp viền sáng phản quang (Specular Highlight Border) và dải chuyển màu mờ
+///   để tạo cảm giác tấm kính cong chuẩn phong cách iOS / uilayouts.
+/// ============================================================================
 class LiquidGlass extends StatelessWidget {
   final Widget child;
   final double borderRadius;

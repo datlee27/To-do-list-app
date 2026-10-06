@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import '../models/task_item.dart';
 import '../theme/app_colors.dart';
 
-/// Component: Thanh tiêu đề ngày + 3 Tab bộ lọc (All, Active, Done) + Nút đảo chiều sắp xếp
+/// ============================================================================
+/// WIDGET: TaskFilterBar (Thanh tiêu đề ngày + Bộ lọc + Đảo chiều sắp xếp)
+/// ============================================================================
+/// - Đáp ứng Bonus Challenge của đề bài: Thêm bộ lọc công việc (All, Active, Done).
+/// - Đáp ứng Bonus Challenge của đề bài: Cho phép sắp xếp các task theo thời gian (Sort).
+/// - Tự động co giãn (Wrap) responsive trên mọi kích thước màn hình mobile từ 375px.
+/// ============================================================================
 class TaskFilterBar extends StatelessWidget {
   final DateTime selectedDate;
   final TaskFilter currentFilter;

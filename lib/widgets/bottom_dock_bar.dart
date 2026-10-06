@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 
-/// Component: Thanh Dock nổi ở đáy màn hình với hiệu ứng Liquid Glass quang học
+/// ============================================================================
+/// WIDGET: BottomDockBar (Thanh Dock nổi ở đáy màn hình)
+/// ============================================================================
+/// - Đáp ứng Bonus Challenge của đề bài: Hiển thị bộ đếm thống kê công việc
+///   (Total, Done, Left) trong ngày theo thời gian thực.
+/// - Đồng thời cung cấp nút bấm tiện ích "+ Add task" kích hoạt mở TaskEditorSheet.
+/// ============================================================================
 class BottomDockBar extends StatelessWidget {
   final int totalCount;
   final int doneCount;
