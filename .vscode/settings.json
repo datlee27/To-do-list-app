@@ -1,4 +1,5 @@
 {
   "dart.flutterSdkPath": "/Users/mac/development/flutter",
-  "dart.sdkPath": "/Users/mac/development/flutter/bin/cache/dart-sdk"
+  "dart.sdkPath": "/Users/mac/development/flutter/bin/cache/dart-sdk",
+  "dart.flutterRunAdditionalArgs": ["--web-port", "8080"]
 }

@@ -144,19 +144,48 @@ class TaskTimelineTile extends StatelessWidget {
 
                         // Tiêu đề Task
                         Expanded(
-                          child: Text(
-                            task.title,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: task.isCompleted
-                                  ? AppColors.textSecondary
-                                  : AppColors.foreground,
-                              decoration: task.isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                              decorationColor: AppColors.textMuted,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: task.isCompleted
+                                      ? AppColors.textSecondary
+                                      : AppColors.foreground,
+                                  decoration: task.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                  decorationColor: AppColors.textMuted,
+                                ),
+                              ),
+                              // Chỉ báo trực quan nếu là Task nhiều ngày
+                              if (task.isMultiDay) ...[
+                                const SizedBox(height: 3),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 11,
+                                      color: AppColors.primaryBlue.withValues(alpha: 0.85),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Multi-day: ${task.formattedDateRange}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primaryBlue.withValues(alpha: 0.85),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
                         ),
 
@@ -193,61 +222,103 @@ class TaskTimelineTile extends StatelessWidget {
                     // Hàng 2: Thời gian bắt đầu - kết thúc + Badge thời lượng
                     Padding(
                       padding: const EdgeInsets.only(left: 38.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 6,
                         children: [
-                          Flexible(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.access_time,
-                                  size: 14,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                task.isMultiDay
+                                    ? '${task.formattedStartTime} (${task.formattedStartDayMonth}) — ${task.formattedEndTime} (${task.formattedEndDayMonth})'
+                                    : '${task.formattedStartTime} — ${task.formattedEndTime}',
+                                style: const TextStyle(
+                                  fontSize: 12,
                                   color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                const SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    '${task.formattedStartTime} — ${task.formattedEndTime}',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
+                              ),
+                            ],
+                          ),
+
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Badge số ngày cho Task nhiều ngày
+                              if (task.isMultiDay) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6688BB).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFF6688BB).withValues(alpha: 0.28),
                                     ),
                                   ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.date_range,
+                                        size: 11,
+                                        color: Color(0xFF4E75AD),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${task.totalDays} days',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF4E75AD),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 6),
                               ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // Badge: Thời lượng hoặc Đã hoàn thành
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: task.isCompleted
-                                  ? AppColors.checkGreenBg.withValues(alpha: 0.8)
-                                  : Colors.white.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.85),
+
+                              // Badge: Thời lượng hoặc Đã hoàn thành
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: task.isCompleted
+                                      ? AppColors.checkGreenBg.withValues(alpha: 0.8)
+                                      : Colors.white.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                  ),
+                                ),
+                                child: Text(
+                                  task.isCompleted
+                                      ? '✓ Completed'
+                                      : task.durationString,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: task.isCompleted
+                                        ? AppColors.checkGreen
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              task.isCompleted
-                                  ? '✓ Completed'
-                                  : task.durationString,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: task.isCompleted
-                                    ? AppColors.checkGreen
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
+                            ],
                           ),
                         ],
                       ),

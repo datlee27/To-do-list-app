@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+
 import '../models/task_item.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
 import '../widgets/week_calendar_strip.dart';
@@ -7,17 +12,11 @@ import '../widgets/task_filter_bar.dart';
 import '../widgets/task_timeline_tile.dart';
 import '../widgets/bottom_dock_bar.dart';
 import '../widgets/task_editor_sheet.dart';
+import 'login_screen.dart';
+
 
 /// ============================================================================
-/// SCREEN CHÍNH: Todo Planner (PRM393 Assignment 1)
-/// ============================================================================
-/// 
-/// DÀNH CHO LẬP TRÌNH VIÊN TỪ REACT / REACT NATIVE:
-/// 1. Screen này đóng vai trò là "Smart Container Component" (Nguồn dữ liệu duy nhất).
-/// 2. Toàn bộ State (tasks, ngày chọn, bộ lọc, sort) được lưu giữ tập trung tại đây.
-/// 3. Dữ liệu được truyền xuống các Widget con qua Constructor (tương đương Props).
-/// 4. Các Widget con gửi sự kiện lên Screen qua Callbacks (tương đương onPress) 
-///    và Screen gọi `setState()` để kích hoạt vẽ lại (Re-render) giao diện.
+/// SCREEN CHÍNH: Todo Planner (PRM393 Assignment 1 & 2)
 /// ============================================================================
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
@@ -27,65 +26,61 @@ class TodoListScreen extends StatefulWidget {
 }
 
 class _TodoListScreenState extends State<TodoListScreen> {
-  // --- 1. KHỞI TẠO STATE (Tương đương các useState() trong React) ---
-  late DateTime _selectedDate;             // const [selectedDate, setSelectedDate] = useState(...)
-  int _weekOffset = 0;                     // const [weekOffset, setWeekOffset] = useState(0)
-  TaskFilter _currentFilter = TaskFilter.all; // const [filter, setFilter] = useState(TaskFilter.all)
-  bool _reverseSort = false;               // const [reverse, setReverse] = useState(false)
-  late List<TaskItem> _tasks;              // const [tasks, setTasks] = useState([...])
+  // --- 1. KHỞI TẠO STATE ---
+  late DateTime _selectedDate;
+  int _weekOffset = 0;
+  TaskFilter _currentFilter = TaskFilter.all;
+  bool _reverseSort = false;
+  late List<TaskItem> _tasks;
+
+  final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
+  StreamSubscription<List<TaskItem>>? _taskSubscription;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _selectedDate = DateTime(now.year, now.month, now.day);
+    final today = DateTime(now.year, now.month, now.day);
+    _selectedDate = today;
+    // Bắt đầu danh sách trống (không dùng mock tasks)
+    _tasks = [];
 
-    // Khởi tạo 4 tasks mẫu theo thiết kế App.tsx
-    _tasks = [
-      TaskItem(
-        id: '1',
-        title: 'Learn Flutter',
-        startDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 9, 0),
-        endDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 11, 0),
-        isCompleted: false,
-        createdAt: DateTime.now(),
-      ),
-      TaskItem(
-        id: '2',
-        title: 'Complete UI assignment',
-        startDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 11, 30),
-        endDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 12, 30),
-        isCompleted: true,
-        createdAt: DateTime.now(),
-      ),
-      TaskItem(
-        id: '3',
-        title: 'Read a little, learn a lot',
-        startDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 14, 0),
-        endDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 15, 0),
-        isCompleted: false,
-        createdAt: DateTime.now(),
-      ),
-      TaskItem(
-        id: '4',
-        title: 'An evening walk',
-        startDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 17, 30),
-        endDateTime: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 18, 0),
-        isCompleted: false,
-        createdAt: DateTime.now(),
-      ),
-    ];
+    // Kết nối dữ liệu Cloud Firestore theo User ID của người dùng đã đăng nhập Google
+    final user = _authService.currentUser;
+    if (user != null) {
+      _taskSubscription = _firestoreService.getTasksStream(user.uid).listen(
+        (tasks) {
+          if (mounted) {
+            setState(() {
+              _tasks = tasks;
+            });
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore stream error: $e');
+        },
+      );
+    }
   }
 
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+
+  @override
+  void dispose() {
+    _taskSubscription?.cancel();
+    super.dispose();
   }
+
 
   // --- 2. DỮ LIỆU TÍNH TOÁN (GETTERS - Tương đương useMemo() trong React) ---
 
-  /// Lọc danh sách công việc của ngày đang được chọn (_selectedDate)
+  /// Lọc danh sách công việc diễn ra trong ngày đang được chọn (_selectedDate):
+  /// - Task 1 ngày: CHỈ xuất hiện đúng vào ngày đã set, không di chuyển sang ngày khác.
+  /// - Task nhiều ngày: xuất hiện trên tất cả các ngày từ startDay đến endDay.
   List<TaskItem> get _dayTasks {
-    return _tasks.where((t) => _isSameDay(t.startDateTime, _selectedDate)).toList();
+    return _tasks
+        .where((t) => t.isOccurringOn(_selectedDate))
+        .toList();
   }
 
   /// Lọc tiếp theo bộ lọc (All, Active, Done) và sắp xếp theo thời gian
@@ -109,24 +104,37 @@ class _TodoListScreenState extends State<TodoListScreen> {
     return filtered;
   }
 
-  // --- 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Tương đương Event Handlers / setState trong React) ---
+  // --- 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Tương đương Event Handlers) ---
 
-  /// Đổi trạng thái hoàn thành (Requirement 4 trong đề bài)
+  /// Đổi trạng thái hoàn thành (Sync Firestore)
   void _toggleComplete(String taskId) {
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+    if (index < 0) return;
+
+    final newStatus = !_tasks[index].isCompleted;
     setState(() {
-      final task = _tasks.firstWhere((t) => t.id == taskId);
-      task.isCompleted = !task.isCompleted;
+      _tasks[index].isCompleted = newStatus;
     });
+
+    final user = _authService.currentUser;
+    if (user != null) {
+      _firestoreService.toggleTaskComplete(user.uid, taskId, newStatus);
+    }
   }
 
-  /// Xóa task khỏi danh sách (Requirement 5 trong đề bài)
+  /// Xóa task khỏi danh sách (Sync Firestore)
   void _deleteTask(String taskId) {
     setState(() {
       _tasks.removeWhere((t) => t.id == taskId);
     });
+
+    final user = _authService.currentUser;
+    if (user != null) {
+      _firestoreService.deleteTask(user.uid, taskId);
+    }
   }
 
-  /// Thêm mới hoặc Cập nhật task (Requirement 2 & Bonus Edit trong đề bài)
+  /// Thêm mới hoặc Cập nhật task (Sync Firestore)
   void _saveTask(TaskItem task) {
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == task.id);
@@ -135,26 +143,73 @@ class _TodoListScreenState extends State<TodoListScreen> {
       } else {
         _tasks.add(task); // Thêm task mới vào danh sách
       }
-      // Tự động chuyển lịch sang ngày của task vừa tạo/sửa
       _selectedDate = DateTime(
         task.startDateTime.year,
         task.startDateTime.month,
         task.startDateTime.day,
       );
     });
+
+    final user = _authService.currentUser;
+    if (user != null) {
+      _firestoreService.saveTask(user.uid, task);
+    }
   }
 
-  /// Mở Modal Form thêm/sửa task
+  /// Đăng xuất khỏi hệ thống
+  Future<void> _handleLogout() async {
+    await _authService.signOut();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+
+
+  /// Mở Modal Form thêm/sửa task kèm hiệu ứng Backdrop Blur toàn màn hình phía sau chuẩn Hình 1
   void _openTaskEditor([TaskItem? task]) {
-    showModalBottomSheet(
+    showGeneralDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return TaskEditorSheet(
-          editingTask: task,
-          initialDate: _selectedDate,
-          onSave: _saveTask,
+      barrierDismissible: true,
+      barrierLabel: 'Close task form',
+      barrierColor: const Color(0xFF3B4E6A).withValues(alpha: 0.18),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: TaskEditorSheet(
+              editingTask: task,
+              initialDate: _selectedDate,
+              onSave: _saveTask,
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: 14.0 * curved.value,
+            sigmaY: 14.0 * curved.value,
+          ),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.35),
+              end: Offset.zero,
+            ).animate(curved),
+            child: FadeTransition(
+              opacity: curved,
+              child: child,
+            ),
+          ),
         );
       },
     );
@@ -246,10 +301,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     ListView(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                       children: [
-                        // 1. App Header
+                        // 1. App Header (Header & User Profile / Logout)
                         AppHeader(
                           selectedDate: _selectedDate,
                           onBackToToday: _backToToday,
+                          onLogout: _handleLogout,
                         ),
 
                         const SizedBox(height: 20),

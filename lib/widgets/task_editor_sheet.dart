@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/task_item.dart';
-import '../theme/app_colors.dart';
 
 /// ============================================================================
 /// WIDGET: TaskEditorSheet (Thêm mới & Chỉnh sửa Task)
@@ -143,223 +142,306 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.editingTask != null;
+    final startDateStr =
+        '${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}';
+    final startTimeStr =
+        '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}';
+    final endDateStr =
+        '${_endDate.day.toString().padLeft(2, '0')}/${_endDate.month.toString().padLeft(2, '0')}/${_endDate.year}';
+    final endTimeStr =
+        '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}';
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FA).withValues(alpha: 0.88),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
-            ),
-            padding: const EdgeInsets.all(24.0),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Top drag handle bar
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'A MOMENT OF INTENTION',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 2,
-                                color: AppColors.textMuted,
+    return Material(
+      color: Colors.transparent,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30.0, sigmaY: 30.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3FA).withValues(alpha: 0.88),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.88),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3C5078).withValues(alpha: 0.18),
+                    blurRadius: 36,
+                    offset: const Offset(0, -8),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header: Eyebrow + Title + Circular Glass Close Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'A MOMENT OF INTENTION',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 2.0,
+                                  color: Color(0xFF7F94B0),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                isEditing ? 'Edit your task' : 'Plan something good',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF28364A),
+                                  letterSpacing: -0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withValues(alpha: 0.45),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  width: 1.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF3C5078).withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 16,
+                                  color: Color(0xFF7F90A6),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              isEditing ? 'Edit your task' : 'Plan something good',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.foreground,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      // Field: Task title
+                      const Text(
+                        'Task title',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF52637A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _titleController,
+                        autofocus: true,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF28364A),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'What would you like to do?',
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF94A3B8),
+                            fontWeight: FontWeight.normal,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.65),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              width: 1.0,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF93C5FD),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Give your task a name.';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      // Field: Starts date & time
+                      const Text(
+                        'Starts',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF52637A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPickerButton(
+                              icon: Icons.calendar_today_outlined,
+                              text: startDateStr,
+                              onTap: () => _pickDate(true),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildPickerButton(
+                              icon: Icons.access_time_rounded,
+                              text: startTimeStr,
+                              onTap: () => _pickTime(true),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Field: Ends date & time
+                      const Text(
+                        'Ends',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF52637A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPickerButton(
+                              icon: Icons.calendar_today_outlined,
+                              text: endDateStr,
+                              onTap: () => _pickDate(false),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildPickerButton(
+                              icon: Icons.access_time_rounded,
+                              text: endTimeStr,
+                              onTap: () => _pickTime(false),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+
+                      // Nút Submit chuẩn Liquid Glass (như src.zip)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _handleSubmit,
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCE8FA).withValues(alpha: 0.70),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.90),
+                                  width: 1.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF536E98).withValues(alpha: 0.12),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isEditing ? Icons.check_rounded : Icons.add_rounded,
+                                    size: 18,
+                                    color: const Color(0xFF476894),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    isEditing ? 'Save changes' : 'Add task',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF476894),
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.of(context).pop(),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Field: Task title
-                    const Text(
-                      'Task title',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _titleController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: 'What would you like to do?',
-                        filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.9)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Colors.white),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Give your task a name.';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Field: Starts date & time
-                    const Text(
-                      'Starts',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPickerButton(
-                            icon: Icons.calendar_today_outlined,
-                            text: '${_startDate.month}/${_startDate.day}/${_startDate.year}',
-                            onTap: () => _pickDate(true),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildPickerButton(
-                            icon: Icons.access_time,
-                            text: _startTime.format(context),
-                            onTap: () => _pickTime(true),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Field: Ends date & time
-                    const Text(
-                      'Ends',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPickerButton(
-                            icon: Icons.calendar_today_outlined,
-                            text: '${_endDate.month}/${_endDate.day}/${_endDate.year}',
-                            onTap: () => _pickDate(false),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildPickerButton(
-                            icon: Icons.access_time,
-                            text: _endTime.format(context),
-                            onTap: () => _pickTime(false),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    if (_errorMessage != null) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                      const Center(
+                        child: Text(
+                          'A small plan for a more intentional day.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF758399),
+                          ),
+                        ),
                       ),
                     ],
-
-                    const SizedBox(height: 24),
-
-                    // Nút Submit
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: _handleSubmit,
-                        icon: Icon(
-                          isEditing ? Icons.check : Icons.add,
-                          color: const Color(0xFF476894),
-                        ),
-                        label: Text(
-                          isEditing ? 'Save changes' : 'Add task',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF476894),
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDCE8FA).withValues(alpha: 0.95),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.9)),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Center(
-                      child: Text(
-                        'A small plan for a more intentional day.',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -378,24 +460,35 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.8),
+          color: Colors.white.withValues(alpha: 0.65),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.95),
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF3C5078).withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 16, color: AppColors.primaryBlue),
-            const SizedBox(width: 8),
             Text(
               text,
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.foreground,
+                color: Color(0xFF28364A),
+                letterSpacing: 0.2,
               ),
             ),
+            Icon(icon, size: 16, color: const Color(0xFF6B82A6)),
           ],
         ),
       ),
