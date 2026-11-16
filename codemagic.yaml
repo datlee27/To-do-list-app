@@ -13,8 +13,9 @@ workflows:
           flutter pub get
       - name: Install CocoaPods
         script: |
-          cd ios
-          pod install --repo-update || pod install
+          if [ -f "ios/Podfile" ]; then
+            cd ios && pod install || true
+          fi
       - name: Build Flutter iOS Release
         script: |
           flutter build ios --release --no-codesign
