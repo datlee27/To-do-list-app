@@ -3,8 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../models/task_item.dart';
-import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import '../services/local_task_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
 import '../widgets/week_calendar_strip.dart';
@@ -12,7 +11,6 @@ import '../widgets/task_filter_bar.dart';
 import '../widgets/task_timeline_tile.dart';
 import '../widgets/bottom_dock_bar.dart';
 import '../widgets/task_editor_sheet.dart';
-import 'login_screen.dart';
 
 
 /// ============================================================================
@@ -25,7 +23,8 @@ class TodoListScreen extends StatefulWidget {
   State<TodoListScreen> createState() => _TodoListScreenState();
 }
 
-class _TodoListScreenState extends State<TodoListScreen> {
+class _TodoListScreenState extends State<TodoListScreen>
+    with WidgetsBindingObserver {
   // --- 1. KHỞI TẠO STATE ---
   late DateTime _selectedDate;
   int _weekOffset = 0;
@@ -33,40 +32,50 @@ class _TodoListScreenState extends State<TodoListScreen> {
   bool _reverseSort = false;
   late List<TaskItem> _tasks;
 
-  final AuthService _authService = AuthService();
-  final FirestoreService _firestoreService = FirestoreService();
+  final LocalTaskService _localTaskService = LocalTaskService();
   StreamSubscription<List<TaskItem>>? _taskSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     _selectedDate = today;
-    // Bắt đầu danh sách trống (không dùng mock tasks)
     _tasks = [];
 
-    // Kết nối dữ liệu Cloud Firestore theo User ID của người dùng đã đăng nhập Google
-    final user = _authService.currentUser;
-    if (user != null) {
-      _taskSubscription = _firestoreService.getTasksStream(user.uid).listen(
-        (tasks) {
-          if (mounted) {
-            setState(() {
-              _tasks = tasks;
-            });
-          }
-        },
-        onError: (e) {
-          debugPrint('Firestore stream error: $e');
-        },
-      );
+    // Nạp dữ liệu Offline & App Group ban đầu
+    _localTaskService.init().then((tasks) {
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+        });
+      }
+    });
+
+    // Lắng nghe dữ liệu cục bộ thời gian thực
+    _taskSubscription = _localTaskService.tasksStream.listen(
+      (tasks) {
+        if (mounted) {
+          setState(() {
+            _tasks = tasks;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Khi quay lại app (ví dụ sau khi thêm task qua Shortcut hoặc Action button ngoài màn hình khoá)
+      _localTaskService.reloadFromNative();
     }
   }
 
-
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _taskSubscription?.cancel();
     super.dispose();
   }
@@ -106,7 +115,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   // --- 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Tương đương Event Handlers) ---
 
-  /// Đổi trạng thái hoàn thành (Sync Firestore)
+  /// Đổi trạng thái hoàn thành (Sync Local & App Group)
   void _toggleComplete(String taskId) {
     final index = _tasks.indexWhere((t) => t.id == taskId);
     if (index < 0) return;
@@ -116,25 +125,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
       _tasks[index].isCompleted = newStatus;
     });
 
-    final user = _authService.currentUser;
-    if (user != null) {
-      _firestoreService.toggleTaskComplete(user.uid, taskId, newStatus);
-    }
+    _localTaskService.toggleTaskComplete(taskId, newStatus);
   }
 
-  /// Xóa task khỏi danh sách (Sync Firestore)
+  /// Xóa task khỏi danh sách (Sync Local & App Group)
   void _deleteTask(String taskId) {
     setState(() {
       _tasks.removeWhere((t) => t.id == taskId);
     });
 
-    final user = _authService.currentUser;
-    if (user != null) {
-      _firestoreService.deleteTask(user.uid, taskId);
-    }
+    _localTaskService.deleteTask(taskId);
   }
 
-  /// Thêm mới hoặc Cập nhật task (Sync Firestore)
+  /// Thêm mới hoặc Cập nhật task (Sync Local & App Group)
   void _saveTask(TaskItem task) {
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == task.id);
@@ -150,21 +153,27 @@ class _TodoListScreenState extends State<TodoListScreen> {
       );
     });
 
-    final user = _authService.currentUser;
-    if (user != null) {
-      _firestoreService.saveTask(user.uid, task);
-    }
+    _localTaskService.saveTask(task);
   }
 
-  /// Đăng xuất khỏi hệ thống
-  Future<void> _handleLogout() async {
-    await _authService.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
+  /// Thông tin chế độ cá nhân
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('listcheck'),
+        content: const Text(
+          'Ứng dụng đang hoạt động ở chế độ Cá nhân 100% Offline.\n\n'
+          'Dữ liệu được lưu trữ trực tiếp trên thiết bị của bạn và đồng bộ với Widget Màn hình khóa của iPhone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
   }
 
 

@@ -39,8 +39,8 @@ class AppHeader extends StatelessWidget {
     final isGoogle = user != null && !user.isAnonymous;
     final displayName = isGoogle
         ? (user.displayName?.isNotEmpty == true ? user.displayName! : 'Lê Văn Đạt')
-        : 'Chế độ Khách';
-    final firstName = isGoogle ? displayName.split(' ').last : 'GUEST';
+        : 'Lê Văn Đạt';
+    final firstName = displayName.split(' ').last;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,14 +78,14 @@ class AppHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // Tiêu đề Todo Planner không bị cắt chữ
+              // Tiêu đề listcheck không bị cắt chữ
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Todo Planner',
+                      'listcheck',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -221,8 +221,8 @@ class AppHeader extends StatelessWidget {
     String name,
     String? photoUrl,
   ) {
-    final statusColor = isGoogle ? const Color(0xFF66A889) : const Color(0xFF92A3BC);
-    final statusText = isGoogle ? 'Cloud Synced' : 'Guest session';
+    final statusColor = const Color(0xFF66A889);
+    final statusText = 'Lock Screen Synced';
 
     return Material(
       color: Colors.transparent,

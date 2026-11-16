@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'firebase_options.dart';
-import 'screens/auth_gate.dart';
+import 'screens/todo_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +32,7 @@ class TodoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PRM393 - Todo List Task Manager',
+      title: 'listcheck',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFEAF0F8),
@@ -43,8 +43,8 @@ class TodoApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // AuthGate tự động điều hướng: LoginScreen nếu chưa đăng nhập, TodoListScreen nếu đã lưu Session
-      home: const AuthGate(),
+      // Vào thẳng màn hình chính TodoListScreen cho chế độ cá nhân Offline
+      home: const TodoListScreen(),
     );
   }
 }
