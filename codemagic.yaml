@@ -6,27 +6,41 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: |
           flutter pub get
-      - name: Install CocoaPods
+
+      - name: Build Flutter iOS Release (no signing)
         script: |
-          cd ios
-          pod install --repo-update || pod install
-          if [ -f "ios/Podfile" ]; then
-            cd ios && pod install || true
-          fi
-      - name: Build Flutter iOS Release
-        script: |
-          flutter build ios --release --no-codesign
+          # Flutter generates necessary files first
+          flutter build ios --release --no-codesign 2>&1 || true
+
+          # Build unsigned IPA using xcodebuild directly
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            PROVISIONING_PROFILE="" \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/ios/derived \
+            build
+
       - name: Package Payload into IPA
         script: |
+          APP_PATH=$(find build/ios/derived -name "Runner.app" -not -path "*/Build/Products/Release-iphonesimulator/*" | head -1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p build/ios/iphoneos/Payload
+          cp -R "$APP_PATH" build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -R Runner.app Payload/
           zip -r -y listcheck.ipa Payload
           ls -lh listcheck.ipa
+
     artifacts:
       - build/ios/iphoneos/listcheck.ipa
