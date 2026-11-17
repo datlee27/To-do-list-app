@@ -1,10 +1,8 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'firebase_options.dart';
 import 'screens/todo_list_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -14,18 +12,10 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint('Firebase.initializeApp() warning: $e');
-  }
   runApp(const TodoApp());
 }
 
-
-/// Root Application (PRM393 - Todo Planner với Firebase & Google Sign-In)
+/// Root Application (listcheck - Todo Personal Planner Offline)
 class TodoApp extends StatelessWidget {
   const TodoApp({super.key});
 

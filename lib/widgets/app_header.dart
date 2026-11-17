@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 
@@ -35,12 +34,9 @@ class AppHeader extends StatelessWidget {
     final monthName = _months[selectedDate.month - 1];
     final dateSubtitle = '$weekdayName, $monthName ${selectedDate.day}';
 
-    final user = AuthService().currentUser;
-    final isGoogle = user != null && !user.isAnonymous;
-    final displayName = isGoogle
-        ? (user.displayName?.isNotEmpty == true ? user.displayName! : 'Lê Văn Đạt')
-        : 'Lê Văn Đạt';
+    const displayName = 'Lê Văn Đạt';
     final firstName = displayName.split(' ').last;
+    const isGoogle = false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +106,7 @@ class AppHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               // AccountMenu Trigger
-              _buildAccountTrigger(context, isGoogle, displayName, user?.photoURL),
+              _buildAccountTrigger(context, isGoogle, displayName, null),
             ],
           ),
         ),
