@@ -5,19 +5,20 @@ import WidgetKit
 #endif
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate {
   private let channelName = "com.example.assignment1TodolistApp/widget"
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
+    GeneratedPluginRegistrant.register(with: self)
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    setupWidgetMethodChannel(binaryMessenger: engineBridge.binaryMessenger)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      setupWidgetMethodChannel(binaryMessenger: controller.binaryMessenger)
+    }
+
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   private func setupWidgetMethodChannel(binaryMessenger: FlutterBinaryMessenger) {
@@ -26,11 +27,9 @@ import WidgetKit
     channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
       switch call.method {
       case "getTasks":
-        // Đọc danh sách JSON từ TaskStore (App Group)
         if let jsonString = TaskStore.sharedDefaults.string(forKey: TaskStore.tasksKey) {
           result(jsonString)
         } else {
-          // Xuất danh sách từ model nếu chưa có chuỗi raw
           let tasks = TaskStore.loadTasks()
           let encoder = JSONEncoder()
           if let data = try? encoder.encode(tasks),
@@ -42,7 +41,6 @@ import WidgetKit
         }
 
       case "saveTasks":
-        // Nhận JSON từ Flutter và lưu vào App Group UserDefaults + tasks.json
         if let args = call.arguments as? [String: Any],
            let tasksJson = args["tasksJson"] as? String {
           TaskStore.sharedDefaults.set(tasksJson, forKey: TaskStore.tasksKey)
