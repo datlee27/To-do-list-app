@@ -339,15 +339,10 @@ class AppHeader extends StatelessWidget {
 
   /// Bottom Sheet Tài khoản chuẩn Figma `AccountMenu.tsx`
   void _showAccountSheet(BuildContext context, bool isGoogle) {
-    final user = AuthService().currentUser;
-    final name = isGoogle
-        ? (user?.displayName?.isNotEmpty == true ? user!.displayName! : 'Lê Văn Đạt')
-        : 'Chế độ Khách';
-    final email = isGoogle
-        ? (user?.email?.isNotEmpty == true ? user!.email! : 'lvd27012004@gmail.com')
-        : 'Không cần tài khoản để bắt đầu';
-    final photoUrl = user?.photoURL;
-    final statusColor = isGoogle ? const Color(0xFF66A889) : const Color(0xFF92A3BC);
+    const name = 'Lê Văn Đạt';
+    const email = 'lvd27012004@gmail.com';
+    const String? photoUrl = null;
+    const statusColor = Color(0xFF66A889);
 
     showGeneralDialog(
       context: context,
@@ -510,9 +505,7 @@ class AppHeader extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                           decoration: BoxDecoration(
-                            color: isGoogle
-                                ? const Color(0xFFDBECE4).withValues(alpha: 0.65)
-                                : const Color(0xFFDCE5F3).withValues(alpha: 0.65),
+                            color: const Color(0xFFDBECE4).withValues(alpha: 0.65),
                             borderRadius: BorderRadius.circular(50),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.7),
