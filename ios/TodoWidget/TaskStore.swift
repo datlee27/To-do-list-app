@@ -8,7 +8,7 @@ public final class TaskStore {
     public static let suiteName = "group.com.example.assignment1TodolistApp"
     public static let tasksKey = "saved_tasks"
 
-    /// UserDefaults chia sẻ qua App Group
+    /// UserDefaults chia sẻ qua App Group (hoặc standard nếu chưa bật group)
     public static var sharedDefaults: UserDefaults {
         return UserDefaults(suiteName: suiteName) ?? .standard
     }
@@ -27,8 +27,9 @@ public final class TaskStore {
 
     /// Đọc toàn bộ danh sách task
     public static func loadTasks() -> [TaskItem] {
-        // 1. Thử đọc từ UserDefaults App Group trước
-        if let jsonString = sharedDefaults.string(forKey: tasksKey),
+        // 1. Thử đọc từ UserDefaults App Group trước, sau đó fallback sang UserDefaults.standard
+        let jsonString = sharedDefaults.string(forKey: tasksKey) ?? UserDefaults.standard.string(forKey: tasksKey)
+        if let jsonString = jsonString,
            let data = jsonString.data(using: .utf8) {
             let decoder = JSONDecoder()
             if let list = try? decoder.decode([TaskItem].self, from: data) {
@@ -57,9 +58,12 @@ public final class TaskStore {
             return
         }
 
-        // 1. Lưu vào UserDefaults App Group
+        // 1. Lưu đồng thời vào cả App Group và Standard Defaults
         sharedDefaults.set(jsonString, forKey: tasksKey)
         sharedDefaults.synchronize()
+
+        UserDefaults.standard.set(jsonString, forKey: tasksKey)
+        UserDefaults.standard.synchronize()
 
         // 2. Lưu vào file JSON trong shared container
         if let fileURL = sharedJsonFileURL {

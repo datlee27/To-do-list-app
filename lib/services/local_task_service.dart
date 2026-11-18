@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/task_item.dart';
 
-/// Service quản lý dữ liệu Offline cục bộ kết hợp đồng bộ iOS App Group & Widget
+/// Service quản lý dữ liệu Offline cục bộ kết hợp đồng bộ iOS Native & Widget
 class LocalTaskService {
   static final LocalTaskService _instance = LocalTaskService._internal();
   factory LocalTaskService() => _instance;
@@ -25,7 +25,7 @@ class LocalTaskService {
   /// Danh sách công việc hiện tại trong bộ nhớ đệm
   List<TaskItem> get currentTasks => List.unmodifiable(_cachedTasks);
 
-  /// Khởi tạo và nạp dữ liệu từ App Group / bộ nhớ cục bộ
+  /// Khởi tạo và nạp dữ liệu từ bộ nhớ thiết bị iOS
   Future<List<TaskItem>> init() async {
     if (_isInitialized) return _cachedTasks;
 
@@ -37,15 +37,11 @@ class LocalTaskService {
             .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList();
       } else {
-        // Nạp một vài task mẫu ban đầu nếu lần đầu mở app
-        _cachedTasks = _createInitialTasks();
-        await _syncToNative();
+        _cachedTasks = [];
       }
     } catch (e) {
-      debugPrint('LocalTaskService init fallback/warning: $e');
-      if (_cachedTasks.isEmpty) {
-        _cachedTasks = _createInitialTasks();
-      }
+      debugPrint('LocalTaskService init warning: $e');
+      _cachedTasks = [];
     }
 
     _isInitialized = true;
@@ -98,7 +94,7 @@ class LocalTaskService {
     await _syncToNative();
   }
 
-  /// Đồng bộ danh sách công việc sang iOS Native App Group & cập nhật Widget
+  /// Đồng bộ danh sách công việc sang iOS Native & cập nhật Widget
   Future<void> _syncToNative() async {
     try {
       final List<Map<String, dynamic>> rawList =
@@ -106,40 +102,8 @@ class LocalTaskService {
       final String jsonStr = jsonEncode(rawList);
       await _channel.invokeMethod('saveTasks', {'tasksJson': jsonStr});
     } catch (e) {
-      debugPrint('Native sync warning: $e');
+      debugPrint('Native sync error: $e');
     }
-  }
-
-  /// Dữ liệu khởi tạo thân thiện cho người dùng cá nhân
-  List<TaskItem> _createInitialTasks() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return [
-      TaskItem(
-        id: 'welcome-task-1',
-        title: 'Chào mừng bạn đến với listcheck!',
-        startDateTime: today.add(const Duration(hours: 9)),
-        endDateTime: today.add(const Duration(hours: 10)),
-        isCompleted: true,
-        createdAt: now,
-      ),
-      TaskItem(
-        id: 'welcome-task-2',
-        title: 'Thêm Widget vào Màn hình khóa của iPhone',
-        startDateTime: today.add(const Duration(hours: 14)),
-        endDateTime: today.add(const Duration(hours: 15)),
-        isCompleted: false,
-        createdAt: now,
-      ),
-      TaskItem(
-        id: 'welcome-task-3',
-        title: 'Dùng Phím tắt hoặc Action Button để thêm task không cần mở app',
-        startDateTime: today.add(const Duration(hours: 19)),
-        endDateTime: today.add(const Duration(hours: 20)),
-        isCompleted: false,
-        createdAt: now,
-      ),
-    ];
   }
 
   void dispose() {

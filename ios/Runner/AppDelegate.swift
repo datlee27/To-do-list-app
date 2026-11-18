@@ -14,11 +14,14 @@ import WidgetKit
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
 
+    // Gọi super.application trước để khởi tạo UIWindow và rootViewController
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
     if let controller = window?.rootViewController as? FlutterViewController {
       setupWidgetMethodChannel(binaryMessenger: controller.binaryMessenger)
     }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    return result
   }
 
   private func setupWidgetMethodChannel(binaryMessenger: FlutterBinaryMessenger) {
@@ -27,7 +30,8 @@ import WidgetKit
     channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
       switch call.method {
       case "getTasks":
-        if let jsonString = TaskStore.sharedDefaults.string(forKey: TaskStore.tasksKey) {
+        // Đọc từ App Group hoặc UserDefaults
+        if let jsonString = TaskStore.sharedDefaults.string(forKey: TaskStore.tasksKey) ?? UserDefaults.standard.string(forKey: TaskStore.tasksKey) {
           result(jsonString)
         } else {
           let tasks = TaskStore.loadTasks()
@@ -43,8 +47,11 @@ import WidgetKit
       case "saveTasks":
         if let args = call.arguments as? [String: Any],
            let tasksJson = args["tasksJson"] as? String {
+          // Lưu đồng thời vào cả App Group và Standard Defaults
           TaskStore.sharedDefaults.set(tasksJson, forKey: TaskStore.tasksKey)
           TaskStore.sharedDefaults.synchronize()
+          UserDefaults.standard.set(tasksJson, forKey: TaskStore.tasksKey)
+          UserDefaults.standard.synchronize()
 
           if let fileURL = TaskStore.sharedJsonFileURL,
              let data = tasksJson.data(using: .utf8) {

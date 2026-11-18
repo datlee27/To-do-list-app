@@ -13,28 +13,11 @@ workflows:
 
       - name: Build Flutter iOS Release (no signing)
         script: |
-          # Flutter generates necessary files first
-          flutter build ios --release --no-codesign 2>&1 || true
-
-          # Build unsigned IPA using xcodebuild directly
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            PROVISIONING_PROFILE="" \
-            DEVELOPMENT_TEAM="" \
-            -derivedDataPath build/ios/derived \
-            build
+          flutter build ios --release --no-codesign
 
       - name: Package Payload into IPA
         script: |
-          APP_PATH=$(find build/ios/derived -name "Runner.app" -not -path "*/Build/Products/Release-iphonesimulator/*" | head -1)
+          APP_PATH=$(find build/ios -name "Runner.app" -not -path "*/Build/Products/Release-iphonesimulator/*" -not -path "*/Payload/*" | head -1)
           echo "Found app at: $APP_PATH"
           mkdir -p build/ios/iphoneos/Payload
           cp -R "$APP_PATH" build/ios/iphoneos/Payload/
