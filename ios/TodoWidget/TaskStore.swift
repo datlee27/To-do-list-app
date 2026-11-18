@@ -25,28 +25,77 @@ public final class TaskStore {
         return sharedContainerURL?.appendingPathComponent("tasks.json")
     }
 
-    /// Đọc toàn bộ danh sách task
-    public static func loadTasks() -> [TaskItem] {
-        // 1. Thử đọc từ UserDefaults App Group trước, sau đó fallback sang UserDefaults.standard
-        let jsonString = sharedDefaults.string(forKey: tasksKey) ?? UserDefaults.standard.string(forKey: tasksKey)
-        if let jsonString = jsonString,
-           let data = jsonString.data(using: .utf8) {
-            let decoder = JSONDecoder()
-            if let list = try? decoder.decode([TaskItem].self, from: data) {
-                return list
-            }
-        }
+    /// File tasks.json trong thư mục Documents của ứng dụng
+    public static var localDocumentsJsonFileURL: URL? {
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("tasks.json")
+    }
 
-        // 2. Fallback đọc từ file shared_tasks.json
+    /// Đọc trực tiếp chuỗi JSON từ 4 lớp lưu trữ dự phòng
+    public static func loadRawJsonString() -> String {
+        // 1. Thử App Group UserDefaults
+        if let str = sharedDefaults.string(forKey: tasksKey), !str.isEmpty, str != "[]" {
+            return str
+        }
+        // 2. Thử Standard UserDefaults
+        if let str = UserDefaults.standard.string(forKey: tasksKey), !str.isEmpty, str != "[]" {
+            return str
+        }
+        // 3. Thử File JSON trong App Group
         if let fileURL = sharedJsonFileURL,
            FileManager.default.fileExists(atPath: fileURL.path),
-           let data = try? Data(contentsOf: fileURL) {
+           let data = try? Data(contentsOf: fileURL),
+           let str = String(data: data, encoding: .utf8), !str.isEmpty, str != "[]" {
+            return str
+        }
+        // 4. Thử File JSON trong Documents
+        if let fileURL = localDocumentsJsonFileURL,
+           FileManager.default.fileExists(atPath: fileURL.path),
+           let data = try? Data(contentsOf: fileURL),
+           let str = String(data: data, encoding: .utf8), !str.isEmpty, str != "[]" {
+            return str
+        }
+        return "[]"
+    }
+
+    /// Lưu trực tiếp chuỗi JSON vào tất cả các lớp lưu trữ
+    public static func saveRawJsonString(_ jsonString: String) {
+        // 1. Lưu UserDefaults App Group
+        sharedDefaults.set(jsonString, forKey: tasksKey)
+        sharedDefaults.synchronize()
+
+        // 2. Lưu UserDefaults Standard
+        UserDefaults.standard.set(jsonString, forKey: tasksKey)
+        UserDefaults.standard.synchronize()
+
+        guard let data = jsonString.data(using: .utf8) else { return }
+
+        // 3. Lưu vào file JSON App Group
+        if let fileURL = sharedJsonFileURL {
+            try? data.write(to: fileURL, options: .atomic)
+        }
+
+        // 4. Lưu vào file JSON trong Documents directory
+        if let fileURL = localDocumentsJsonFileURL {
+            try? data.write(to: fileURL, options: .atomic)
+        }
+
+        // 5. Yêu cầu iOS WidgetKit render lại timeline ngay lập tức
+        #if canImport(WidgetKit)
+        if #available(iOS 14.0, *) {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+        #endif
+    }
+
+    /// Đọc toàn bộ danh sách task
+    public static func loadTasks() -> [TaskItem] {
+        let jsonString = loadRawJsonString()
+        if let data = jsonString.data(using: .utf8) {
             let decoder = JSONDecoder()
             if let list = try? decoder.decode([TaskItem].self, from: data) {
                 return list
             }
         }
-
         return []
     }
 
@@ -57,25 +106,7 @@ public final class TaskStore {
               let jsonString = String(data: data, encoding: .utf8) else {
             return
         }
-
-        // 1. Lưu đồng thời vào cả App Group và Standard Defaults
-        sharedDefaults.set(jsonString, forKey: tasksKey)
-        sharedDefaults.synchronize()
-
-        UserDefaults.standard.set(jsonString, forKey: tasksKey)
-        UserDefaults.standard.synchronize()
-
-        // 2. Lưu vào file JSON trong shared container
-        if let fileURL = sharedJsonFileURL {
-            try? data.write(to: fileURL, options: .atomic)
-        }
-
-        // 3. Yêu cầu iOS WidgetKit render lại timeline ngay lập tức
-        #if canImport(WidgetKit)
-        if #available(iOS 14.0, *) {
-            WidgetCenter.shared.reloadAllTimelines()
-        }
-        #endif
+        saveRawJsonString(jsonString)
     }
 
     /// Đổi trạng thái hoàn thành của một task theo ID (cho Interactive Widget)

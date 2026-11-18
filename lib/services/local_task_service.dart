@@ -25,23 +25,32 @@ class LocalTaskService {
   /// Danh sách công việc hiện tại trong bộ nhớ đệm
   List<TaskItem> get currentTasks => List.unmodifiable(_cachedTasks);
 
-  /// Khởi tạo và nạp dữ liệu từ bộ nhớ thiết bị iOS
+  /// Khởi tạo và nạp dữ liệu từ bộ nhớ thiết bị iOS (có cơ chế thử lại để đón UIKit Scene)
   Future<List<TaskItem>> init() async {
     if (_isInitialized) return _cachedTasks;
 
-    try {
-      final String? jsonStr = await _channel.invokeMethod<String>('getTasks');
-      if (jsonStr != null && jsonStr.isNotEmpty) {
-        final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
-        _cachedTasks = decoded
-            .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      } else {
-        _cachedTasks = [];
+    for (int attempt = 0; attempt < 5; attempt++) {
+      try {
+        final String? jsonStr = await _channel.invokeMethod<String>('getTasks');
+        if (jsonStr != null) {
+          if (jsonStr.isNotEmpty && jsonStr != '[]') {
+            final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
+            _cachedTasks = decoded
+                .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
+                .toList();
+          } else {
+            _cachedTasks = [];
+          }
+          _isInitialized = true;
+          _tasksController.add(List.from(_cachedTasks));
+          return _cachedTasks;
+        }
+      } catch (e) {
+        debugPrint('LocalTaskService init attempt $attempt error: $e');
+        if (attempt < 4) {
+          await Future.delayed(Duration(milliseconds: 150 * (attempt + 1)));
+        }
       }
-    } catch (e) {
-      debugPrint('LocalTaskService init warning: $e');
-      _cachedTasks = [];
     }
 
     _isInitialized = true;
@@ -53,7 +62,7 @@ class LocalTaskService {
   Future<void> reloadFromNative() async {
     try {
       final String? jsonStr = await _channel.invokeMethod<String>('getTasks');
-      if (jsonStr != null && jsonStr.isNotEmpty) {
+      if (jsonStr != null && jsonStr.isNotEmpty && jsonStr != '[]') {
         final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
         _cachedTasks = decoded
             .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
