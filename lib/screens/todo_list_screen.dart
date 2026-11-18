@@ -68,8 +68,11 @@ class _TodoListScreenState extends State<TodoListScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Khi quay lại app (ví dụ sau khi thêm task qua Shortcut hoặc Action button ngoài màn hình khoá)
+      // Khi quay lại app (ví dụ sau khi thêm task qua Shortcut hoặc tick ngoài màn hình khoá)
       _localTaskService.reloadFromNative();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _localTaskService.flushSync();
     }
   }
 
@@ -139,6 +142,16 @@ class _TodoListScreenState extends State<TodoListScreen>
 
   /// Thêm mới hoặc Cập nhật task (Sync Local & App Group)
   void _saveTask(TaskItem task) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
+    final targetDay = DateTime(
+      task.startDateTime.year,
+      task.startDateTime.month,
+      task.startDateTime.day,
+    );
+    final targetMonday = targetDay.subtract(Duration(days: targetDay.weekday - 1));
+
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == task.id);
       if (index >= 0) {
@@ -146,11 +159,8 @@ class _TodoListScreenState extends State<TodoListScreen>
       } else {
         _tasks.add(task); // Thêm task mới vào danh sách
       }
-      _selectedDate = DateTime(
-        task.startDateTime.year,
-        task.startDateTime.month,
-        task.startDateTime.day,
-      );
+      _selectedDate = targetDay;
+      _weekOffset = targetMonday.difference(currentMonday).inDays ~/ 7;
     });
 
     _localTaskService.saveTask(task);

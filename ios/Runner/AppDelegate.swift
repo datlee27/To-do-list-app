@@ -1,69 +1,80 @@
 import Flutter
 import UIKit
-#if canImport(WidgetKit)
-import WidgetKit
-#endif
+
+/// Plugin nội bộ đồng bộ dữ liệu Todo List giữa Flutter, ổ cứng thiết bị và Lock Screen Widget
+final class TodoListWidgetPlugin: NSObject, FlutterPlugin {
+  private static let channelName = "com.example.assignment1TodolistApp/widget"
+  private static var registeredMessengers = Set<ObjectIdentifier>()
+  private static var retainedChannels: [FlutterMethodChannel] = []
+  private static let sharedInstance = TodoListWidgetPlugin()
+
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    attach(to: registrar.messenger())
+  }
+
+  public static func attach(to binaryMessenger: FlutterBinaryMessenger) {
+    let id = ObjectIdentifier(binaryMessenger as AnyObject)
+    guard registeredMessengers.insert(id).inserted else { return }
+
+    let channel = FlutterMethodChannel(name: channelName, binaryMessenger: binaryMessenger)
+    channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+      sharedInstance.handle(call, result: result)
+    }
+    retainedChannels.append(channel)
+  }
+
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "getTasks":
+      let json = TaskStore.loadRawJsonString()
+      // Đồng bộ lại bản sao dự phòng cục bộ của app chính (phòng khi Widget/Shortcut vừa thay đổi dữ liệu)
+      if let data = json.data(using: .utf8) {
+        if let localURL = TaskStore.localDocumentsJsonFileURL {
+          let dirURL = localURL.deletingLastPathComponent()
+          if !FileManager.default.fileExists(atPath: dirURL.path) {
+            try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
+          }
+          try? data.write(to: localURL, options: .atomic)
+        }
+        UserDefaults.standard.set(json, forKey: TaskStore.tasksKey)
+        UserDefaults.standard.synchronize()
+      }
+      result(json)
+
+    case "saveTasks":
+      if let args = call.arguments as? [String: Any],
+         let tasksJson = args["tasksJson"] as? String {
+        TaskStore.saveRawJsonString(tasksJson)
+        result(true)
+      } else {
+        result(FlutterError(code: "INVALID_ARGS", message: "tasksJson is required", details: nil))
+      }
+
+    case "reloadWidgets":
+      TaskStore.reloadWidgets()
+      result(true)
+
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+}
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
-  private static let channelName = "com.example.assignment1TodolistApp/widget"
-  private static var isChannelConfigured = false
-
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-
-    // 1. Thử đăng ký qua plugin registrar
-    if let registrar = self.registrar(forPlugin: "TodoListWidgetPlugin") {
-      AppDelegate.setupWidgetMethodChannel(binaryMessenger: registrar.messenger())
-    }
-
-    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-
-    // 2. Thử đăng ký qua window rootViewController nếu đã có
-    if let controller = window?.rootViewController as? FlutterViewController {
-      AppDelegate.setupWidgetMethodChannel(binaryMessenger: controller.binaryMessenger)
-    }
-
-    return result
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  public static func setupWidgetMethodChannel(binaryMessenger: FlutterBinaryMessenger) {
-    if isChannelConfigured { return }
-    isChannelConfigured = true
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let channel = FlutterMethodChannel(name: channelName, binaryMessenger: binaryMessenger)
-
-    channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
-      switch call.method {
-      case "getTasks":
-        // Đọc từ TaskStore (bao gồm App Group, Standard UserDefaults và file JSON)
-        let jsonString = TaskStore.loadRawJsonString()
-        result(jsonString)
-
-      case "saveTasks":
-        if let args = call.arguments as? [String: Any],
-           let tasksJson = args["tasksJson"] as? String {
-          // Lưu bền vững vào cả 4 lớp lưu trữ
-          TaskStore.saveRawJsonString(tasksJson)
-          result(true)
-        } else {
-          result(FlutterError(code: "INVALID_ARGS", message: "tasksJson is required", details: nil))
-        }
-
-      case "reloadWidgets":
-        #if canImport(WidgetKit)
-        if #available(iOS 14.0, *) {
-          WidgetCenter.shared.reloadAllTimelines()
-        }
-        #endif
-        result(true)
-
-      default:
-        result(FlutterMethodNotImplemented)
-      }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "TodoListWidgetPlugin") {
+      TodoListWidgetPlugin.register(with: registrar)
     }
+    TodoListWidgetPlugin.attach(to: engineBridge.applicationRegistrar.messenger())
   }
 }

@@ -72,13 +72,17 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
     if (picked != null) {
       setState(() {
         if (isStart) {
+          final wasSingleDay = _startDate.year == _endDate.year &&
+              _startDate.month == _endDate.month &&
+              _startDate.day == _endDate.day;
           _startDate = picked;
-          if (_endDate.isBefore(_startDate)) {
-            _endDate = _startDate;
+          if (wasSingleDay || _endDate.isBefore(_startDate)) {
+            _endDate = picked;
           }
         } else {
           _endDate = picked;
         }
+        _errorMessage = null;
       });
     }
   }

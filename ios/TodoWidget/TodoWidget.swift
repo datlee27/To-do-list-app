@@ -37,8 +37,13 @@ struct TodoTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodoEntry>) -> Void) {
         let entry = currentEntry()
-        // Cập nhật lại mỗi 15 phút hoặc khi TaskStore gọi reloadAllTimelines
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
+        // Cập nhật lại mỗi 15 phút, đúng 00:00 qua ngày mới, hoặc tức thì khi TaskStore gọi reloadTimelines
+        let now = Date()
+        let calendar = Calendar.current
+        let fifteenMin = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
+        let nextDay = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+        let tomorrowStart = calendar.startOfDay(for: nextDay)
+        let nextUpdate = min(fifteenMin, tomorrowStart)
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
     }
@@ -96,6 +101,9 @@ struct TodoWidgetEntryView: View {
                 if remainingCount == 0 && entry.totalCount > 0 {
                     Text("Xong hết!")
                         .font(.system(size: 9, weight: .medium))
+                } else if entry.todayTasks.count > 2 {
+                    Text("+\(entry.todayTasks.count - 2)")
+                        .font(.system(size: 9, weight: .bold))
                 }
             }
             .opacity(0.85)
@@ -107,12 +115,14 @@ struct TodoWidgetEntryView: View {
                     .padding(.top, 2)
             } else {
                 ForEach(entry.todayTasks.prefix(2)) { task in
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         // Nút tương tác tick hoàn thành trực tiếp trên iOS 17+
                         if #available(iOS 17.0, *) {
                             Button(intent: ToggleTaskIntent(taskId: task.id)) {
                                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .frame(width: 20, height: 18, alignment: .leading)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         } else {
@@ -202,6 +212,13 @@ struct TodoWidgetEntryView: View {
             Text("việc cần làm hôm nay")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
+
+            if let nextTask = entry.todayTasks.first(where: { !$0.isCompleted }) {
+                Text(nextTask.title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+            }
         }
         .padding()
         .containerBackground(for: .widget) {
@@ -234,12 +251,14 @@ struct TodoWidgetEntryView: View {
                 Spacer()
             } else {
                 ForEach(entry.todayTasks.prefix(3)) { task in
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         if #available(iOS 17.0, *) {
                             Button(intent: ToggleTaskIntent(taskId: task.id)) {
                                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: 14))
                                     .foregroundColor(task.isCompleted ? .green : .gray)
+                                    .frame(width: 24, height: 22, alignment: .leading)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         } else {

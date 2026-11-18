@@ -9,14 +9,14 @@ class SceneDelegate: FlutterSceneDelegate {
   ) {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
 
-    // Đảm bảo MethodChannel được kết nối ngay khi WindowScene sẵn sàng
+    // Dự phòng kết nối MethodChannel ngay khi WindowScene sẵn sàng
     if let windowScene = scene as? UIWindowScene {
       let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
         ?? windowScene.windows.first?.rootViewController
         ?? self.window?.rootViewController
 
       if let controller = rootVC as? FlutterViewController {
-        AppDelegate.setupWidgetMethodChannel(binaryMessenger: controller.binaryMessenger)
+        TodoListWidgetPlugin.attach(to: controller.binaryMessenger)
       }
     }
   }

@@ -105,20 +105,20 @@ class TaskItem {
     };
   }
 
-  /// Khởi tạo Model từ dữ liệu Document trên Firestore
+  /// Khởi tạo Model từ dữ liệu Document / JSON cục bộ (chuyển về giờ địa phương)
   factory TaskItem.fromMap(Map<String, dynamic> map, {String? docId}) {
     return TaskItem(
       id: docId ?? (map['id'] as String? ?? ''),
       title: map['title'] as String? ?? '',
       startDateTime: map['startDateTime'] != null
-          ? DateTime.parse(map['startDateTime'] as String)
+          ? DateTime.parse(map['startDateTime'] as String).toLocal()
           : DateTime.now(),
       endDateTime: map['endDateTime'] != null
-          ? DateTime.parse(map['endDateTime'] as String)
+          ? DateTime.parse(map['endDateTime'] as String).toLocal()
           : DateTime.now(),
       isCompleted: map['isCompleted'] as bool? ?? false,
       createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'] as String)
+          ? DateTime.parse(map['createdAt'] as String).toLocal()
           : DateTime.now(),
     );
   }

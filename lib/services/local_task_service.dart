@@ -18,22 +18,36 @@ class LocalTaskService {
 
   List<TaskItem> _cachedTasks = [];
   bool _isInitialized = false;
+  Future<List<TaskItem>>? _initFuture;
+  Future<void> _syncChain = Future.value();
 
   /// Stream dữ liệu công việc thời gian thực cho UI lắng nghe
   Stream<List<TaskItem>> get tasksStream => _tasksController.stream;
 
   /// Danh sách công việc hiện tại trong bộ nhớ đệm
-  List<TaskItem> get currentTasks => List.unmodifiable(_cachedTasks);
+  List<TaskItem> get currentTasks => List.unmodifiable(_clonedTasks());
 
-  /// Khởi tạo và nạp dữ liệu từ bộ nhớ thiết bị iOS (có cơ chế thử lại để đón UIKit Scene)
-  Future<List<TaskItem>> init() async {
-    if (_isInitialized) return _cachedTasks;
+  List<TaskItem> _clonedTasks() =>
+      _cachedTasks.map((t) => t.copyWith()).toList(growable: false);
 
-    for (int attempt = 0; attempt < 5; attempt++) {
+  void _emitSnapshot() {
+    if (!_tasksController.isClosed) {
+      _tasksController.add(_clonedTasks());
+    }
+  }
+
+  /// Khởi tạo và nạp dữ liệu từ bộ nhớ thiết bị iOS (gộp các lần gọi đồng thời & thử lại khi cold start)
+  Future<List<TaskItem>> init() {
+    if (_isInitialized) return Future.value(_clonedTasks());
+    return _initFuture ??= _performInit();
+  }
+
+  Future<List<TaskItem>> _performInit() async {
+    for (int attempt = 0; attempt < 6; attempt++) {
       try {
         final String? jsonStr = await _channel.invokeMethod<String>('getTasks');
         if (jsonStr != null) {
-          if (jsonStr.isNotEmpty && jsonStr != '[]') {
+          if (jsonStr.isNotEmpty) {
             final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
             _cachedTasks = decoded
                 .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
@@ -42,32 +56,36 @@ class LocalTaskService {
             _cachedTasks = [];
           }
           _isInitialized = true;
-          _tasksController.add(List.from(_cachedTasks));
-          return _cachedTasks;
+          _emitSnapshot();
+          return _clonedTasks();
         }
       } catch (e) {
         debugPrint('LocalTaskService init attempt $attempt error: $e');
-        if (attempt < 4) {
-          await Future.delayed(Duration(milliseconds: 150 * (attempt + 1)));
-        }
+      }
+      if (attempt < 5) {
+        await Future.delayed(Duration(milliseconds: 100 * (attempt + 1)));
       }
     }
 
     _isInitialized = true;
-    _tasksController.add(List.from(_cachedTasks));
-    return _cachedTasks;
+    _emitSnapshot();
+    return _clonedTasks();
   }
 
-  /// Nạp lại dữ liệu từ Native iOS (khi app resume sau khi Shortcut / Widget đã cập nhật)
+  /// Nạp lại dữ liệu từ Native iOS (khi app resume sau khi tick ngoài Màn hình khóa hoặc Shortcut)
   Future<void> reloadFromNative() async {
+    if (!_isInitialized) {
+      await init();
+    }
+    await _syncChain;
     try {
       final String? jsonStr = await _channel.invokeMethod<String>('getTasks');
-      if (jsonStr != null && jsonStr.isNotEmpty && jsonStr != '[]') {
+      if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
         _cachedTasks = decoded
             .map((e) => TaskItem.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList();
-        _tasksController.add(List.from(_cachedTasks));
+        _emitSnapshot();
       }
     } catch (e) {
       debugPrint('Error reloading tasks from native: $e');
@@ -76,42 +94,60 @@ class LocalTaskService {
 
   /// Thêm mới hoặc Cập nhật một Task
   Future<void> saveTask(TaskItem task) async {
-    final index = _cachedTasks.indexWhere((t) => t.id == task.id);
+    if (!_isInitialized) await init();
+    final copy = task.copyWith();
+    final index = _cachedTasks.indexWhere((t) => t.id == copy.id);
     if (index >= 0) {
-      _cachedTasks[index] = task;
+      _cachedTasks[index] = copy;
     } else {
-      _cachedTasks.add(task);
+      _cachedTasks.add(copy);
     }
-    _tasksController.add(List.from(_cachedTasks));
-    await _syncToNative();
+    _emitSnapshot();
+    await _enqueueSync();
   }
 
   /// Đổi trạng thái hoàn thành của Task
   Future<void> toggleTaskComplete(String taskId, bool isCompleted) async {
+    if (!_isInitialized) await init();
     final index = _cachedTasks.indexWhere((t) => t.id == taskId);
     if (index >= 0) {
-      _cachedTasks[index].isCompleted = isCompleted;
-      _tasksController.add(List.from(_cachedTasks));
-      await _syncToNative();
+      _cachedTasks[index] = _cachedTasks[index].copyWith(isCompleted: isCompleted);
+      _emitSnapshot();
+      await _enqueueSync();
     }
   }
 
   /// Xóa Task khỏi danh sách
   Future<void> deleteTask(String taskId) async {
+    if (!_isInitialized) await init();
     _cachedTasks.removeWhere((t) => t.id == taskId);
-    _tasksController.add(List.from(_cachedTasks));
-    await _syncToNative();
+    _emitSnapshot();
+    await _enqueueSync();
   }
 
-  /// Đồng bộ danh sách công việc sang iOS Native & cập nhật Widget
-  Future<void> _syncToNative() async {
+  /// Hàng đợi ghi tuần tự xuống iOS Native & kích hoạt WidgetKit reload
+  Future<void> _enqueueSync() {
+    final snapshot = _cachedTasks.map((t) => t.toMap()).toList();
+    _syncChain = _syncChain.then((_) async {
+      try {
+        final String jsonStr = jsonEncode(snapshot);
+        await _channel.invokeMethod('saveTasks', {'tasksJson': jsonStr});
+      } catch (e) {
+        debugPrint('Native sync error: $e');
+      }
+    });
+    return _syncChain;
+  }
+
+  /// Đợi toàn bộ thao tác ghi xuống ổ cứng hoàn tất trước khi app vào nền / thoát
+  Future<void> flushSync() => _syncChain;
+
+  /// Yêu cầu WidgetKit làm mới giao diện widget
+  Future<void> reloadWidgets() async {
     try {
-      final List<Map<String, dynamic>> rawList =
-          _cachedTasks.map((t) => t.toMap()).toList();
-      final String jsonStr = jsonEncode(rawList);
-      await _channel.invokeMethod('saveTasks', {'tasksJson': jsonStr});
+      await _channel.invokeMethod('reloadWidgets');
     } catch (e) {
-      debugPrint('Native sync error: $e');
+      debugPrint('Widget reload warning: $e');
     }
   }
 
