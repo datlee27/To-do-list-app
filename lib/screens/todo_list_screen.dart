@@ -161,6 +161,7 @@ class _TodoListScreenState extends State<TodoListScreen>
       }
       _selectedDate = targetDay;
       _weekOffset = targetMonday.difference(currentMonday).inDays ~/ 7;
+      _currentFilter = TaskFilter.all; // Luôn hiển thị ngay task vừa tạo, không bị ẩn bởi bộ lọc Done
     });
 
     _localTaskService.saveTask(task);
@@ -369,43 +370,47 @@ class _TodoListScreenState extends State<TodoListScreen>
 
                         // 4. Task Timeline List
                         if (visibleTasks.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 48),
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                    shape: BoxShape.circle,
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _openTaskEditor(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 48),
+                              alignment: Alignment.center,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.task_alt,
+                                      size: 36,
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.task_alt,
-                                    size: 36,
-                                    color: AppColors.textMuted,
+                                  const SizedBox(height: 14),
+                                  const Text(
+                                    'No tasks planned for this day.',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 14),
-                                const Text(
-                                  'No tasks planned for this day.',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Tap "+ Add task" below to begin.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Tap "+ Add task" below to begin.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           )
                         else

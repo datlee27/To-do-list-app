@@ -55,10 +55,10 @@ class BottomDockBar extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // Nút "+ Add task" dạng viên thuốc Liquid Glass
-          InkWell(
+          // Nút "+ Add task" dạng viên thuốc Liquid Glass (GestureDetector Opaque bắt trọn 100% diện tích bấm)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onAddTask,
-            borderRadius: BorderRadius.circular(24),
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 18,

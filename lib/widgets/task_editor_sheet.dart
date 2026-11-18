@@ -49,9 +49,20 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       _endTime = TimeOfDay(hour: task.endDateTime.hour, minute: task.endDateTime.minute);
     } else {
       _startDate = widget.initialDate;
-      _startTime = const TimeOfDay(hour: 9, minute: 0);
+      final now = DateTime.now();
+      final isToday = widget.initialDate.year == now.year &&
+          widget.initialDate.month == now.month &&
+          widget.initialDate.day == now.day;
+
+      final startHour = isToday ? ((now.hour + 1) % 24) : 9;
+      _startTime = TimeOfDay(hour: startHour, minute: 0);
+
       _endDate = widget.initialDate;
-      _endTime = const TimeOfDay(hour: 10, minute: 0);
+      final endHour = (startHour + 1) % 24;
+      _endTime = TimeOfDay(hour: endHour, minute: 0);
+      if (endHour == 0 && startHour == 23) {
+        _endDate = widget.initialDate.add(const Duration(days: 1));
+      }
     }
   }
 
@@ -81,6 +92,9 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
           }
         } else {
           _endDate = picked;
+          if (_endDate.isBefore(_startDate)) {
+            _startDate = _endDate;
+          }
         }
         _errorMessage = null;
       });
@@ -97,15 +111,35 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       setState(() {
         if (isStart) {
           _startTime = picked;
+          final isSameDay = _startDate.year == _endDate.year &&
+              _startDate.month == _endDate.month &&
+              _startDate.day == _endDate.day;
+          final startMinutes = picked.hour * 60 + picked.minute;
+          final endMinutes = _endTime.hour * 60 + _endTime.minute;
+          if (isSameDay && endMinutes <= startMinutes) {
+            final nextEnd = (startMinutes + 60) % (24 * 60);
+            _endTime = TimeOfDay(hour: nextEnd ~/ 60, minute: nextEnd % 60);
+            if (startMinutes + 60 >= 24 * 60) {
+              _endDate = _startDate.add(const Duration(days: 1));
+            }
+          }
         } else {
           _endTime = picked;
         }
+        _errorMessage = null;
       });
     }
   }
 
   void _handleSubmit() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      setState(() {
+        _errorMessage = 'Vui lòng nhập tên công việc.';
+      });
+      _formKey.currentState?.validate();
+      return;
+    }
 
     final startDateTime = DateTime(
       _startDate.year,
@@ -115,7 +149,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       _startTime.minute,
     );
 
-    final endDateTime = DateTime(
+    var endDateTime = DateTime(
       _endDate.year,
       _endDate.month,
       _endDate.day,
@@ -123,22 +157,21 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       _endTime.minute,
     );
 
+    // Tự động điều chỉnh nếu giờ kết thúc <= giờ bắt đầu (không bao giờ chặn người dùng)
     if (endDateTime.isBefore(startDateTime) || endDateTime.isAtSameMomentAs(startDateTime)) {
-      setState(() {
-        _errorMessage = 'End date and time must be after the start.';
-      });
-      return;
+      endDateTime = startDateTime.add(const Duration(hours: 1));
     }
 
     final task = TaskItem(
       id: widget.editingTask?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
+      title: title,
       startDateTime: startDateTime,
       endDateTime: endDateTime,
       isCompleted: widget.editingTask?.isCompleted ?? false,
       createdAt: widget.editingTask?.createdAt ?? DateTime.now(),
     );
 
+    FocusScope.of(context).unfocus();
     widget.onSave(task);
     Navigator.of(context).pop();
   }
@@ -265,6 +298,15 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                       TextFormField(
                         controller: _titleController,
                         autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _handleSubmit(),
+                        onChanged: (_) {
+                          if (_errorMessage != null) {
+                            setState(() {
+                              _errorMessage = null;
+                            });
+                          }
+                        },
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF28364A),
@@ -384,53 +426,48 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
 
                       const SizedBox(height: 24),
 
-                      // Nút Submit chuẩn Liquid Glass (như src.zip)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _handleSubmit,
+                      // Nút Submit dạng GestureDetector Opaque toàn diện (bấm bất kỳ vị trí nào cũng nhận)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _handleSubmit,
+                        child: Container(
+                          width: double.infinity,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCE8FA).withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(18),
-                            child: Container(
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDCE8FA).withValues(alpha: 0.70),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.90),
-                                  width: 1.0,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF536E98).withValues(alpha: 0.12),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    isEditing ? Icons.check_rounded : Icons.add_rounded,
-                                    size: 18,
-                                    color: const Color(0xFF476894),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    isEditing ? 'Save changes' : 'Add task',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF476894),
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              width: 1.2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF536E98).withValues(alpha: 0.16),
+                                blurRadius: 18,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isEditing ? Icons.check_rounded : Icons.add_rounded,
+                                size: 20,
+                                color: const Color(0xFF38557E),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isEditing ? 'Save changes' : 'Add task',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF38557E),
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -460,9 +497,9 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
     required String text,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
